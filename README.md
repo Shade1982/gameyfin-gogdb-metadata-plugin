@@ -1,0 +1,1 @@
+# gameyfin-gogdb-metadata-plugin
