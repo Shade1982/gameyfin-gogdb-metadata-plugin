@@ -22,9 +22,18 @@ only to identify matching GOG product IDs; metadata comes from GOG DB.
 HTTP behavior is tested with a mock client, so the test suite does not depend
 on either service being online.
 
+## Using with other providers
+
+Gameyfin uses provider priority when merging metadata: for each field, the first
+provider with a value wins rather than combining values from all providers.
+Place GOG DB below your primary metadata providers if you want it to fill in
+fields they don't provide without replacing their values.
+
 ## Build
 
-Requires JDK 21 or newer.
+Targets Gameyfin 2.5.0's plugin API and requires JDK 25 or newer.
+The test task also verifies the packaged JAR's PF4J extension index and loads
+the plugin using the 2.5.0 `PluginContext` API.
 
 ```sh
 ./gradlew build

@@ -9,10 +9,12 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.client.engine.mock.respond
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 private val httpTestJson = Json { ignoreUnknownKeys = true }
@@ -136,6 +138,74 @@ class GogDbHttpTest {
             assertEquals("Portal", results.single().title)
         } finally {
             client.close()
+        }
+    }
+
+    @Test
+    fun `unavailable catalog products are attempted only once across pages`() {
+        val productRequests = mutableListOf<String>()
+        val firstPage = (101..148).map { id ->
+            CatalogProduct(id.toString(), if (id == 101) "Portal" else "Unrelated Game $id")
+        }
+        val client = mockClient { request ->
+            when (request.url.encodedPath) {
+                "/v1/catalog" -> {
+                    val products = when (request.url.parameters["searchAfter"]) {
+                        "0" -> firstPage
+                        "148" -> listOf(CatalogProduct("149", "Portal 2"))
+                        else -> emptyList()
+                    }
+                    respondJson(httpTestJson.encodeToString(CatalogResponse(49, products)))
+                }
+                "/data/products/101/product.json" -> {
+                    productRequests += "101"
+                    respondJson("{}", HttpStatusCode.NotFound)
+                }
+                "/data/products/149/product.json" -> {
+                    productRequests += "149"
+                    respondJson(httpTestJson.encodeToString(GogDbProduct(149, "Portal 2")))
+                }
+                else -> error("Unexpected URL: ${request.url}")
+            }
+        }
+        val provider = GogDbPlugin.GogDbMetadataProvider(client)
+
+        try {
+            val results = provider.fetchByTitle("Portal", emptySet(), 1)
+
+            assertEquals(listOf("149"), results.map { it.originalId })
+            assertEquals(listOf("101", "149"), productRequests)
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
+    fun `cancellation propagates from catalog and product requests`() {
+        val catalogClient = mockClient {
+            throw CancellationException("catalog request cancelled")
+        }
+        val catalogProvider = GogDbPlugin.GogDbMetadataProvider(catalogClient)
+
+        try {
+            assertFailsWith<CancellationException> {
+                catalogProvider.fetchByTitle("Portal", emptySet(), 1)
+            }
+        } finally {
+            catalogClient.close()
+        }
+
+        val productClient = mockClient {
+            throw CancellationException("product request cancelled")
+        }
+        val productProvider = GogDbPlugin.GogDbMetadataProvider(productClient)
+
+        try {
+            assertFailsWith<CancellationException> {
+                productProvider.fetchById("123")
+            }
+        } finally {
+            productClient.close()
         }
     }
 

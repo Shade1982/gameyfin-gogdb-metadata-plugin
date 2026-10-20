@@ -9,19 +9,20 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.gameyfin.pluginapi.core.wrapper.GameyfinPlugin
+import org.gameyfin.pluginapi.core.wrapper.PluginContext
 import org.gameyfin.pluginapi.gamemetadata.GameMetadata
 import org.gameyfin.pluginapi.gamemetadata.GameMetadataProvider
 import org.gameyfin.pluginapi.gamemetadata.Platform
 import org.pf4j.Extension
-import org.pf4j.PluginWrapper
 import org.slf4j.LoggerFactory
 
-class GogDbPlugin(wrapper: PluginWrapper) : GameyfinPlugin(wrapper) {
+class GogDbPlugin(context: PluginContext) : GameyfinPlugin(context) {
     @Suppress("Unused")
     @Extension(ordinal = 3)
     class GogDbMetadataProvider internal constructor(
@@ -56,6 +57,8 @@ class GogDbPlugin(wrapper: PluginWrapper) : GameyfinPlugin(wrapper) {
                         log.debug("GOG DB search returned no metadata for '{}'", title)
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 log.warn("Failed to search GOG DB for '{}': {}", title, e.message)
                 emptyList()
@@ -69,6 +72,8 @@ class GogDbPlugin(wrapper: PluginWrapper) : GameyfinPlugin(wrapper) {
                 runBlocking { fetchProduct(productId) }?.let(::toMetadata)?.also {
                     metadataCache[it.originalId] = it
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 log.warn("Failed to fetch GOG DB product {}: {}", id, e.message)
                 null
@@ -81,6 +86,7 @@ class GogDbPlugin(wrapper: PluginWrapper) : GameyfinPlugin(wrapper) {
             maxResults: Int
         ): List<GameMetadata> {
             val metadataById = linkedMapOf<String, GameMetadata>()
+            val attemptedProductIds = mutableSetOf<String>()
             val searchQuery = prepareSearchTitle(title).ifBlank { title }
             CatalogPagination.collect(
                 pageSize = CATALOG_PAGE_SIZE,
@@ -107,7 +113,7 @@ class GogDbPlugin(wrapper: PluginWrapper) : GameyfinPlugin(wrapper) {
                         .filter { matchesPlatforms(it.platforms(), platformFilter) }
                     for (candidate in candidates) {
                         if (metadataById.size >= maxResults) break
-                        if (candidate.id in metadataById) continue
+                        if (!attemptedProductIds.add(candidate.id)) continue
 
                         try {
                             val metadata = metadataCache[candidate.id] ?: fetchProduct(candidate.id)
@@ -116,6 +122,8 @@ class GogDbPlugin(wrapper: PluginWrapper) : GameyfinPlugin(wrapper) {
                             if (metadata != null && matchesPlatforms(metadata.platforms.orEmpty(), platformFilter)) {
                                 metadataById[candidate.id] = metadata
                             }
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             log.warn("Failed to fetch GOG DB product {}: {}", candidate.id, e.message)
                         }
