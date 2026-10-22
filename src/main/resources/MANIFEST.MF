@@ -1,4 +1,4 @@
-Plugin-Version: 0.1.2
+Plugin-Version: 0.1.3
 Plugin-Class: io.github.shade1982.gameyfin.plugins.gogdb.GogDbPlugin
 Plugin-Id: io.github.shade1982.gameyfin.plugins.gogdb
 Plugin-Name: GOGDB Metadata
@@ -6,3 +6,4 @@ Plugin-Description: Fetches game metadata from GOG DB
 Plugin-Author: Shade1982
 Plugin-License: GPL-2.0
 Plugin-Url: https://github.com/Shade1982/gameyfin-gogdb-metadata-plugin
+Plugin-Requires: >=2.5.1

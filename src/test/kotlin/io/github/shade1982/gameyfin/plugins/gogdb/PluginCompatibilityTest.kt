@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
 
 class PluginCompatibilityTest {
     @Test
-    fun `packaged plugin jar loads using the Gameyfin 2_5 plugin context`() {
+    fun `packaged plugin jar loads using the Gameyfin 2_5_1 plugin context`() {
         val pluginJar = Path.of(requireNotNull(System.getProperty("pluginJar")))
         val dataDirectory = Path.of("build", "test-plugin-data")
         val context = object : PluginContext {
@@ -32,6 +32,11 @@ class PluginCompatibilityTest {
         val providerClient = HttpClient(MockEngine { error("Unexpected request in compatibility test") })
         try {
             JarFile(pluginJar.toFile()).use { jar ->
+                val manifest = requireNotNull(jar.manifest).mainAttributes
+                assertEquals("io.github.shade1982.gameyfin.plugins.gogdb", manifest.getValue("Plugin-Id"))
+                assertEquals("0.1.3", manifest.getValue("Plugin-Version"))
+                assertEquals(">=2.5.1", manifest.getValue("Plugin-Requires"))
+
                 val extensionIndex = jar.getInputStream(
                     requireNotNull(jar.getJarEntry("META-INF/extensions.idx"))
                 ).bufferedReader().use { it.readLines() }

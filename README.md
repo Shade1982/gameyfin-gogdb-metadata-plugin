@@ -31,9 +31,10 @@ fields they don't provide without replacing their values.
 
 ## Build
 
-Targets Gameyfin 2.5.0's plugin API and requires JDK 25 or newer.
+Targets Gameyfin 2.5.1's plugin API and requires JDK 25 or newer.
 The test task also verifies the packaged JAR's PF4J extension index and loads
-the plugin using the 2.5.0 `PluginContext` API.
+the plugin using the 2.5.1 `PluginContext` API. The JAR declares
+`Plugin-Requires: >=2.5.1` for Marketplace compatibility.
 
 ```sh
 ./gradlew build
@@ -52,6 +53,10 @@ Run tests with:
    Create that directory if it does not exist.
 3. Restart Gameyfin.
 
+Gameyfin 2.5.1 also supports installing plugins from the Plugin Marketplace.
+Marketplace-installed plugins are stored in `/opt/gameyfin/plugins-installed`;
+persist this directory when running Gameyfin in a container.
+
 ### Docker Compose
 
 Mount the plugin JAR into Gameyfin's plugin directory:
@@ -61,4 +66,8 @@ services:
   gameyfin:
     volumes:
       - /your/location/gogdb-plugin-x.y.z.jar:/opt/gameyfin/plugins/gogdb-plugin-x.y.z.jar
+      - gameyfin-plugins-installed:/opt/gameyfin/plugins-installed
+
+volumes:
+  gameyfin-plugins-installed:
 ```

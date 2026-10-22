@@ -26,7 +26,7 @@ java {
 }
 
 dependencies {
-    compileOnly("org.gameyfin:plugin-api:2.5.0")
+    compileOnly("org.gameyfin:plugin-api:2.5.1")
     compileOnly("org.pf4j:pf4j:3.15.0")
     ksp("care.better.pf4j:pf4j-kotlin-symbol-processing:2.4.10-1.0.5")
     compileOnly("org.slf4j:slf4j-api:2.0.9")
@@ -38,7 +38,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion") { exclude(group = "org.slf4j") }
     implementation("me.xdrop:fuzzywuzzy:1.4.0")
 
-    testImplementation("org.gameyfin:plugin-api:2.5.0")
+    testImplementation("org.gameyfin:plugin-api:2.5.1")
     testImplementation("io.ktor:ktor-client-mock:$ktorVersion") { exclude(group = "org.slf4j") }
     testImplementation(kotlin("test-junit5"))
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.4")
